@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0a2a"/>
+      <stop offset="50%" style="stop-color:#1a1145"/>
+      <stop offset="100%" style="stop-color:#0f0a2a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Decorative circles -->
+  <circle cx="900" cy="200" r="200" fill="#7c3aed" opacity="0.08" filter="url(#glow)"/>
+  <circle cx="300" cy="500" r="150" fill="#ec4899" opacity="0.06" filter="url(#glow)"/>
+  <!-- Camera icon -->
+  <g transform="translate(540,140)" opacity="0.9">
+    <rect x="0" y="20" width="120" height="90" rx="15" fill="none" stroke="url(#accent)" stroke-width="3"/>
+    <path d="M30 20L45 0h30l15 20" fill="none" stroke="url(#accent)" stroke-width="3"/>
+    <circle cx="60" cy="65" r="25" fill="none" stroke="url(#accent)" stroke-width="3"/>
+    <circle cx="60" cy="65" r="10" fill="url(#accent)" opacity="0.5"/>
+  </g>
+  <!-- Title -->
+  <text x="600" y="320" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="800" fill="white">Glow<tspan fill="url(#accent)">Me</tspan></text>
+  <!-- Subtitle -->
+  <text x="600" y="390" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="32" fill="#a78bfa">AI-фотосесія за 15 хвилин</text>
+  <!-- Description -->
+  <text x="600" y="440" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="22" fill="#94a3b8">25 професійних фото з 2 ваших знімків</text>
+  <!-- Stats bar -->
+  <g transform="translate(250,490)">
+    <rect width="700" height="60" rx="30" fill="white" opacity="0.07"/>
+    <text x="100" y="38" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#c4b5fd">15 хв</text>
+    <text x="275" y="38" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#c4b5fd">25 фото</text>
+    <text x="440" y="38" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#c4b5fd">4K якість</text>
+    <text x="610" y="38" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#c4b5fd">2 фото</text>
+  </g>
+  <!-- Bottom accent line -->
+  <rect x="0" y="620" width="1200" height="10" fill="url(#accent)"/>
+</svg>
