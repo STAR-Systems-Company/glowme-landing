@@ -1,10 +1,17 @@
+require('dotenv').config();
 const express = require('express');
 const compression = require('compression');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { renderPage } = require('./render');
+const { sendWelcome } = require('./mailer');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Behind nginx — trust proxy headers so req.ip / X-Forwarded-* are correct
+app.set('trust proxy', true);
 
 app.use(compression());
 app.use('/public', express.static(path.join(__dirname, 'public'), {
@@ -140,21 +147,124 @@ Preferred-Languages: uk, en
 `);
 });
 
-// Subscribe
-const fs = require('fs');
-const SUBSCRIBERS_FILE = path.join(__dirname, 'subscribers.txt');
+// Subscribe — JSONL log + transactional welcome email
+const SUBSCRIBERS_FILE = path.join(__dirname, 'subscribers.jsonl');
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-app.use(express.json());
+const seenEmails = new Set();
+try {
+  if (fs.existsSync(SUBSCRIBERS_FILE)) {
+    const data = fs.readFileSync(SUBSCRIBERS_FILE, 'utf-8');
+    for (const line of data.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const rec = JSON.parse(line);
+        if (rec.email) seenEmails.add(rec.email);
+      } catch { /* ignore malformed line */ }
+    }
+    console.log(`[subscribe] loaded ${seenEmails.size} known subscribers`);
+  }
+} catch (err) {
+  console.error('[subscribe] failed to load existing subscribers:', err.message);
+}
 
-app.post('/api/subscribe', (req, res) => {
-  const email = (req.body.email || '').trim().toLowerCase();
-  if (!email || !email.includes('@')) {
+// Sliding-window rate limiter (per IP). 5 requests / 10 min.
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_MAX = 5;
+const rateBuckets = new Map();
+function rateLimitHit(key) {
+  const now = Date.now();
+  const cutoff = now - RATE_WINDOW_MS;
+  const arr = (rateBuckets.get(key) || []).filter(t => t > cutoff);
+  if (arr.length >= RATE_MAX) {
+    rateBuckets.set(key, arr);
+    return { limited: true, retryAfter: Math.ceil((arr[0] + RATE_WINDOW_MS - now) / 1000) };
+  }
+  arr.push(now);
+  rateBuckets.set(key, arr);
+  return { limited: false };
+}
+// Periodic cleanup so the map doesn't grow forever.
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  for (const [k, arr] of rateBuckets) {
+    const kept = arr.filter(t => t > cutoff);
+    if (kept.length === 0) rateBuckets.delete(k);
+    else rateBuckets.set(k, kept);
+  }
+}, RATE_WINDOW_MS).unref?.();
+
+app.use(express.json({ limit: '8kb' }));
+
+app.post('/api/subscribe', async (req, res) => {
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = (Array.isArray(fwd) ? fwd[0] : (fwd || '').split(',')[0].trim()) || req.ip || req.socket.remoteAddress || 'unknown';
+
+  const rl = rateLimitHit(ip);
+  if (rl.limited) {
+    res.set('Retry-After', String(rl.retryAfter));
+    return res.status(429).json({ error: 'too_many_requests' });
+  }
+
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return res.status(400).json({ error: 'Invalid email' });
   }
 
-  const line = `${email}\t${new Date().toISOString()}\n`;
-  fs.appendFileSync(SUBSCRIBERS_FILE, line, 'utf-8');
-  console.log(`New subscriber: ${email}`);
+  // Duplicate — respond success to the user, do not store, do not resend.
+  if (seenEmails.has(email)) {
+    console.log('[subscribe] dup %s from %s', email, ip);
+    return res.json({ ok: true });
+  }
+
+  const now = new Date();
+  const record = {
+    id: crypto.randomBytes(8).toString('hex'),
+    email,
+    timestamp: now.toISOString(),
+    epoch_ms: now.getTime(),
+    date: now.toISOString().slice(0, 10),
+    time: now.toISOString().slice(11, 19),
+    source: 'landing',
+    page: req.body?.page || '/',
+    ip,
+    user_agent: req.headers['user-agent'] || null,
+    referer: req.headers['referer'] || req.headers['referrer'] || null,
+    accept_language: req.headers['accept-language'] || null,
+    origin: req.headers['origin'] || null,
+    host: req.headers['host'] || null,
+    utm: {
+      source: req.body?.utm_source || null,
+      medium: req.body?.utm_medium || null,
+      campaign: req.body?.utm_campaign || null,
+      term: req.body?.utm_term || null,
+      content: req.body?.utm_content || null,
+    },
+    email_sent: false,
+    email_message_id: null,
+    email_error: null,
+  };
+
+  try {
+    const result = await sendWelcome(email);
+    record.email_sent = !!result.sent;
+    record.email_message_id = result.messageId || null;
+    if (!result.sent) record.email_error = result.reason || 'unknown';
+  } catch (err) {
+    record.email_error = err.message || String(err);
+    console.error('[subscribe] welcome email failed for %s: %s', email, record.email_error);
+  }
+
+  try {
+    fs.appendFileSync(SUBSCRIBERS_FILE, JSON.stringify(record) + '\n', 'utf-8');
+  } catch (err) {
+    console.error('[subscribe] failed to persist record:', err.message);
+    return res.status(500).json({ error: 'storage_failed' });
+  }
+
+  seenEmails.add(email);
+  console.log('[subscribe] NEW %s (mail=%s)', email, record.email_sent);
+
   res.json({ ok: true });
 });
 

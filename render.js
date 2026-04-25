@@ -876,23 +876,41 @@ function js() {
 function handleSubscribe(btn) {
   var input = btn.parentElement.querySelector('input');
   var email = input.value.trim();
-  if (!email || !email.includes('@')) {
+  var emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/;
+  if (!emailRe.test(email)) {
     input.style.borderColor='#f87171';
     input.focus();
     return;
   }
-  btn.textContent = 'Дякуємо! \\u2764';
+  var originalText = btn.textContent;
+  btn.textContent = 'Надсилаємо…';
   btn.disabled = true;
   input.disabled = true;
-  input.style.borderColor = 'rgba(255,255,255,.6)';
-  // In production, send to API
-  try {
-    fetch('/api/subscribe', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email: email})
-    }).catch(function(){});
-  } catch(e) {}
+  var qs = new URLSearchParams(window.location.search);
+  var payload = {
+    email: email,
+    page: window.location.pathname,
+    utm_source: qs.get('utm_source'),
+    utm_medium: qs.get('utm_medium'),
+    utm_campaign: qs.get('utm_campaign'),
+    utm_term: qs.get('utm_term'),
+    utm_content: qs.get('utm_content')
+  };
+  fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+    .then(function(){
+      btn.textContent = 'Дякуємо! \\u2764';
+      input.style.borderColor = 'rgba(255,255,255,.6)';
+    })
+    .catch(function(){
+      btn.textContent = originalText;
+      btn.disabled = false;
+      input.disabled = false;
+      input.style.borderColor = '#f87171';
+    });
 }
 `;
 }

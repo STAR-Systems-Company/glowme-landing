@@ -17,6 +17,8 @@ lerna-debug.log*
 # Subscriber list (user-generated data)
 subscribers.txt
 subscribers.*.txt
+subscribers.jsonl
+subscribers.*.jsonl
 
 # Environment & secrets
 .env
