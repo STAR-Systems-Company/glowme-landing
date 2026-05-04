@@ -10,6 +10,16 @@ const { sendWelcome } = require('./mailer');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Canonical site domain. The landing is currently served from
+// glowme.studio; sitemap / robots.txt / image URLs all need to point
+// here so Google's crawler can fetch them. The pre-launch product
+// domain (glowme.com.ua) was previously hard-coded here, which broke
+// indexing — Search Console reported "Заблокировано в robots.txt" /
+// "Страница с переадресацией" because the sitemap URL it tried to
+// fetch lived on a domain that didn't serve content yet.
+// Override via env if you ever swap to a different canonical.
+const DOMAIN = process.env.SITE_DOMAIN || 'https://glowme.studio';
+
 // Behind nginx — trust proxy headers so req.ip / X-Forwarded-* are correct
 app.set('trust proxy', true);
 
@@ -19,36 +29,47 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
   immutable: true,
 }));
 
-// Robots.txt — explicit allow for major crawlers + image/asset access, sitemap pointer
+// Robots.txt — explicit allow for major crawlers + image/asset access,
+// sitemap pointer. Each user-agent group has BOTH Allow and an empty
+// Disallow per the original RFC (some crawlers — and Google's URL
+// Inspection in particular — flag groups with only `Allow:` as
+// "rules undefined" and conservatively treat the URL as blocked).
 app.get('/robots.txt', (_req, res) => {
   res.type('text/plain').send(`User-agent: *
 Allow: /
-Allow: /public/
-Allow: /public/images/
+Disallow:
 
 User-agent: Googlebot
 Allow: /
+Disallow:
 
 User-agent: Googlebot-Image
 Allow: /public/images/
+Disallow:
 
 User-agent: Bingbot
 Allow: /
+Disallow:
 
 User-agent: YandexBot
 Allow: /
+Disallow:
 
 User-agent: Twitterbot
 Allow: /
+Disallow:
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow:
 
 User-agent: LinkedInBot
 Allow: /
+Disallow:
 
 User-agent: TelegramBot
 Allow: /
+Disallow:
 
 User-agent: GPTBot
 Disallow: /
@@ -56,16 +77,15 @@ Disallow: /
 User-agent: CCBot
 Disallow: /
 
-Sitemap: https://glowme.com.ua/sitemap.xml
-Sitemap: https://glowme.com.ua/sitemap-images.xml
-Host: https://glowme.com.ua
+Sitemap: ${DOMAIN}/sitemap.xml
+Sitemap: ${DOMAIN}/sitemap-images.xml
 `);
 });
 
 // Sitemap — main page with image sitemap extension
 app.get('/sitemap.xml', (_req, res) => {
   const now = new Date().toISOString().slice(0, 10);
-  const domain = 'https://glowme.com.ua';
+  const domain = DOMAIN;
   const images = [
     { loc: `${domain}/public/images/Image_9bk25v9bk25v9bk2.png`, title: 'AI фотосесія бізнес стиль — LinkedIn', caption: 'AI фотосесія в бізнес-стилі для LinkedIn та резюме' },
     { loc: `${domain}/public/images/Image_twx9rmtwx9rmtwx9.png`, title: 'Fashion AI фотосесія — editorial', caption: 'Fashion AI фотосесія в editorial стилі для Instagram' },
@@ -100,7 +120,7 @@ ${imageTags}
 // Dedicated image sitemap for Google Images
 app.get('/sitemap-images.xml', (_req, res) => {
   const now = new Date().toISOString().slice(0, 10);
-  const domain = 'https://glowme.com.ua';
+  const domain = DOMAIN;
   const images = [
     { loc: `${domain}/public/images/Image_9bk25v9bk25v9bk2.png`, title: 'AI фотосесія бізнес стиль — LinkedIn', caption: 'AI фотосесія в бізнес-стилі для LinkedIn та резюме, згенерована нейромережею GlowMe' },
     { loc: `${domain}/public/images/Image_twx9rmtwx9rmtwx9.png`, title: 'Fashion AI фотосесія — editorial', caption: 'Fashion AI фотосесія в editorial стилі для Instagram та модельного портфоліо' },

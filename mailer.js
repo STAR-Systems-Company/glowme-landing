@@ -8,7 +8,9 @@ const {
   MAIL_PASSWORD,
   MAIL_FROM_NAME = 'GlowMe',
   MAIL_FROM_ADDRESS,
-  SITE_URL = 'https://glowme.com.ua',
+  // Default matches server.js / render.js — landing is at glowme.studio,
+  // not glowme.com.ua (which is a separate WordPress site).
+  SITE_URL = 'https://glowme.studio',
 } = process.env;
 
 let transporter = null;
@@ -80,7 +82,7 @@ function welcomeHtml() {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 30px;">
                 <tr>
                   <td style="border-radius:14px;background:linear-gradient(135deg,${brandViolet},#9333ea);box-shadow:0 8px 22px rgba(124,58,237,.4);">
-                    <a href="${SITE_URL}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:.01em;">Перейти на glowme.com.ua →</a>
+                    <a href="${SITE_URL}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:.01em;">Перейти на glowme.studio →</a>
                   </td>
                 </tr>
               </table>
@@ -92,7 +94,7 @@ function welcomeHtml() {
           <tr>
             <td style="padding:24px 36px 30px;border-top:1px solid #f1ebff;">
               <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;text-align:center;">
-                Ви отримали цей лист, бо залишили email на <a href="${SITE_URL}" style="color:${brandViolet};text-decoration:none;">glowme.com.ua</a> для сповіщення про запуск.<br>
+                Ви отримали цей лист, бо залишили email на <a href="${SITE_URL}" style="color:${brandViolet};text-decoration:none;">glowme.studio</a> для сповіщення про запуск.<br>
                 Якщо це були не ви — просто проігноруйте лист, ми більше не напишемо.
               </p>
             </td>

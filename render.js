@@ -3,7 +3,15 @@
  * Everything is inline — zero external CSS/JS blocking requests.
  */
 
-const DOMAIN = 'https://glowme.com.ua';
+// Canonical site domain for the landing page. The previous hardcode
+// pointed at glowme.com.ua — but that domain is a SEPARATE WordPress
+// site on a different server. Putting that URL in <link rel="canonical">
+// + og:url + alternate hreflang + structured data was telling Google
+// "the real version of this content lives at glowme.com.ua" — Google
+// dutifully crawled there, found a totally different WordPress site,
+// and reported the landing's pages as "Страница с переадресацией"
+// in Search Console. Override via env if you ever swap canonicals.
+const DOMAIN = process.env.SITE_DOMAIN || 'https://glowme.studio';
 const BRAND = 'GlowMe';
 const TITLE = 'GlowMe \u2014 AI \u0424\u043E\u0442\u043E\u0441\u0435\u0441\u0456\u044F \u041E\u043D\u043B\u0430\u0439\u043D | 25 \u043F\u0440\u043E\u0444\u0435\u0441\u0456\u0439\u043D\u0438\u0445 \u0444\u043E\u0442\u043E \u0437\u0430 15 \u0445\u0432\u0438\u043B\u0438\u043D';
 const DESC = '\u041F\u0440\u043E\u0444\u0435\u0441\u0456\u0439\u043D\u0430 AI \u0444\u043E\u0442\u043E\u0441\u0435\u0441\u0456\u044F \u0431\u0435\u0437 \u0444\u043E\u0442\u043E\u0433\u0440\u0430\u0444\u0430 \u0456 \u0441\u0442\u0443\u0434\u0456\u0457. \u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0442\u0435 2 \u0444\u043E\u0442\u043E \u2014 \u043E\u0442\u0440\u0438\u043C\u0430\u0439\u0442\u0435 25 \u0441\u0442\u0443\u0434\u0456\u0439\u043D\u0438\u0445 \u0437\u043D\u0456\u043C\u043A\u0456\u0432 \u0443 4K. \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u0430 AI-\u043C\u043E\u0434\u0435\u043B\u044C \u0434\u043B\u044F \u043A\u043E\u0436\u043D\u043E\u0433\u043E \u043A\u043B\u0456\u0454\u043D\u0442\u0430. \u041E\u043F\u043B\u0430\u0442\u0430 \u0432 \u0433\u0440\u0438\u0432\u043D\u044F\u0445.';
